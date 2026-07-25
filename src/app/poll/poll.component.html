@@ -1,0 +1,244 @@
+<div class="page-wrapper">
+  <div class="container py-5">
+    
+    <!-- Premium Header -->
+    <div class="text-center mb-5">
+      <h1 class="display-4 fw-extrabold text-gradient mb-3">Townhall Dashboard</h1>
+      <p class="text-muted fs-5">Create new questions and watch live results roll in.</p>
+    </div>
+
+    <!-- MAIN ROW: Split into Two Columns -->
+    <div class="row g-5 justify-content-center">
+      
+      <!-- LEFT COLUMN: Create Poll Form -->
+      <div class="col-lg-5 col-md-12">
+        <div class="card create-card shadow-lg border-0 mb-4">
+          <div class="card-body p-4 p-md-5">
+            <h3 class="fw-bold mb-4 text-dark d-flex align-items-center">
+              <!-- Votify App Icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="45" height="45" class="me-3">
+                <defs>
+                  <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#8b5cf6" />
+                    <stop offset="100%" stop-color="#ec4899" />
+                  </linearGradient>
+                  <linearGradient id="barGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#ffffff" />
+                    <stop offset="100%" stop-color="#fdf2f8" stop-opacity="0.7" />
+                  </linearGradient>
+                  <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+                    <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#ec4899" flood-opacity="0.3" />
+                  </filter>
+                </defs>
+                <rect x="10" y="10" width="100" height="100" rx="24" fill="url(#bgGrad)" filter="url(#shadow)" />
+                <rect x="28" y="65" width="14" height="25" rx="6" fill="url(#barGrad)" />
+                <rect x="53" y="45" width="14" height="45" rx="6" fill="url(#barGrad)" />
+                <rect x="78" y="25" width="14" height="65" rx="6" fill="url(#barGrad)" />
+                <circle cx="85" cy="25" r="5" fill="#facc15" />
+              </svg>
+              Create New Poll
+            </h3>
+            
+            <!-- Success Notification Alert -->
+            @if (successMessage) {
+              <div class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+                <strong>🎉 Success!</strong> {{ successMessage }}
+              </div>
+            }
+
+            <div class="mb-4">
+              <label class="form-label text-muted fw-bold">Poll Question</label>
+              <input [(ngModel)]="newPoll.question" placeholder="e.g., What is your favorite framework?" class="form-control custom-input form-control-lg" required>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <label class="form-label text-muted fw-bold m-0">Options (Minimum 2)</label>
+              <button type="button" (click)="addOption()" class="btn btn-sm btn-outline-primary fw-bold">+ Add Option</button>
+            </div>
+
+            <div class="options-container mb-4">
+              @for (option of newPoll.options; track $index; let optIdx = $index) {
+                <div class="input-group mb-3 custom-input-group shadow-sm">            
+                  <span class="input-group-text bg-white border-end-0 text-primary">🔘</span>
+                  <input [(ngModel)]="option.voteOption" placeholder="Option text..." class="form-control border-start-0 custom-input" required>
+                  
+                  <!-- Delete Option Button (Disabled if total options drop to 2) -->
+                  <button type="button" 
+                          (click)="removeOption(optIdx)" 
+                          [disabled]="newPoll.options.length <= 2" 
+                          class="btn btn-outline-danger border-start-0" 
+                          title="Delete option">
+                    ❌
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Poll Duration Dropdown -->
+            <div class="mb-4">
+              <label class="form-label text-muted fw-bold">Poll Duration</label>
+              <select [(ngModel)]="pollDuration" class="form-select form-select-lg custom-input shadow-sm">
+                <option [value]="1">1 Hour</option>
+                <option [value]="24">24 Hours</option>
+                <option [value]="168">7 Days</option>
+                <option [value]="0">Never Expires</option>
+              </select>
+            </div>
+
+            <!-- NEW: Blind Voting Toggle -->
+            <div class="form-check form-switch mb-4 d-flex align-items-center">
+              <input class="form-check-input shadow-sm me-2 fs-5" type="checkbox" role="switch" id="blindVoteSwitch" [(ngModel)]="newPoll.isBlind">
+              <label class="form-check-label text-dark fw-bold mt-1" for="blindVoteSwitch">
+                Blind Voting <span class="text-muted fw-normal fs-6 ms-1">(Hide results until voted)</span>
+              </label>
+            </div>
+
+            <!-- Submit Button with Validation -->
+            <button type="button" 
+                    (click)="createPoll()" 
+                    [disabled]="!newPoll.question || newPoll.question.trim() === ''" 
+                    class="btn btn-create w-100 fw-bold fs-5 shadow">
+              🚀 Launch Poll
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Live Polls Feed -->
+      <div class="col-lg-7 col-md-12">
+        
+        <!-- Improved Live Feed Header & Controls -->
+        <div class="live-feed-header mb-4">
+          
+          <!-- Top Row: Title and Sort Dropdown -->
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center">
+              <span class="pulse-dot me-3"></span>
+              <h3 class="fw-bold m-0 text-dark">Live Feed</h3>
+            </div>
+
+            <select [(ngModel)]="sortBy" class="form-select shadow-sm w-auto">
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="most-voted">Most Voted</option>
+            </select>
+          </div>
+
+          <!-- Bottom Row: Modern Full-Width Search Bar with Clear Button -->
+          <div class="input-group shadow-sm">
+            <span class="input-group-text bg-white border-end-0 text-muted">🔍</span>
+            <input [(ngModel)]="searchQuery" 
+                   placeholder="Search questions or options..." 
+                   class="form-control border-start-0 py-2">
+            
+            @if (searchQuery) {
+              <button class="btn btn-outline-secondary border-start-0 bg-white text-muted" 
+                      type="button" 
+                      (click)="searchQuery = ''" 
+                      title="Clear search">
+                ✕
+              </button>
+            }
+          </div>
+
+        </div>
+
+        <div class="feed-scroll-container">
+          
+          <!-- Outer Loop using filteredPolls -->
+          @for (poll of filteredPolls; track $index) {
+            <div class="poll-card card border-0 mb-4 shadow-sm">
+              <div class="card-body p-4 p-md-5">
+                
+                <!-- Active/Closed Badges -->
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                  <div class="d-flex flex-column">
+                    <h4 class="card-title fw-bold text-dark m-0 mb-1">{{ poll.question }}</h4>
+                    <!-- Optional: Show an indicator if blind voting is enabled -->
+                    @if (poll.isBlind) {
+                      <span class="text-muted small">🙈 Blind Poll</span>
+                    }
+                  </div>
+                  
+                  @if (isPollClosed(poll)) {
+                    <span class="badge bg-danger rounded-pill px-3 py-2">🔴 Closed</span>
+                  } @else {
+                    <span class="badge bg-success rounded-pill px-3 py-2 shadow-sm">🟢 Active</span>
+                  }
+                </div>
+                
+                <div class="options-container d-grid gap-3">
+                  
+                  <!-- Inner Loop: Evaluating Blind Voting State -->
+                  @for (option of poll.options; track $index; let optIdx = $index) {
+                    
+                    @if (!poll.isBlind || hasVoted(poll.id) || isPollClosed(poll)) {
+                      <!-- STATE 1: SHOW RESULTS (Normal Poll, User Voted, or Poll Closed) -->
+                      <button type="button" 
+                              (click)="vote(poll.id, optIdx)" 
+                              [disabled]="hasVoted(poll.id) || isPollClosed(poll)"
+                              [class.voted-disabled]="hasVoted(poll.id) || isPollClosed(poll)"
+                              class="poll-btn position-relative overflow-hidden d-flex justify-content-between align-items-center border-0 p-3 w-100 text-start shadow-sm rounded-3">
+                        
+                        <!-- Dynamic Progress Bar Background -->
+                        <div class="progress-fill" [style.width.%]="getOptionPercentage(poll, option.voteCount)"></div>
+
+                        <!-- Text -->
+                        <span class="option-text fw-medium position-relative z-1">{{ option.voteOption }}</span>
+                        
+                        <div class="position-relative z-1 d-flex align-items-center gap-3">
+                          <span class="text-primary fw-bold">{{ getOptionPercentage(poll, option.voteCount) }}%</span>
+                          <span class="vote-badge">{{ option.voteCount }}</span>
+                        </div>
+                      </button>
+                    } @else {
+                      <!-- STATE 2: BLIND VOTING (Hide results until they click) -->
+                      <button type="button" 
+                              (click)="vote(poll.id, optIdx)" 
+                              class="poll-btn border-0 p-3 w-100 text-center shadow-sm rounded-3 bg-light">
+                        <span class="option-text fw-bold text-dark">{{ option.voteOption }}</span>
+                      </button>
+                    }
+                    
+                  }
+                  
+                </div>
+
+                <!-- Show a message under the poll if locked by vote or expiration -->
+                @if (hasVoted(poll.id) && !isPollClosed(poll)) {
+                  <div class="text-center mt-3 text-success fw-bold small">
+                    ✅ You have already voted on this poll.
+                  </div>
+                }
+                
+                @if (isPollClosed(poll)) {
+                  <div class="text-center mt-3 text-danger fw-bold small">
+                    ⏳ Voting has ended for this poll.
+                  </div>
+                }
+
+              </div>
+            </div>
+          } @empty {
+            
+             @if (isLoading) {
+              <div class="loading-state text-center py-5 bg-white rounded-4 shadow-sm">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <h5 class="text-muted">Loading live polls...</h5>
+              </div>
+            } @else {
+              <div class="empty-state text-center py-5 bg-white rounded-4 shadow-sm">
+                <span class="display-1 d-block mb-3">🔍</span>
+                <h4 class="text-dark fw-bold">No matching polls found</h4>
+                <p class="text-muted">Try adjusting your search query or launch a new question!</p>
+              </div>
+            }
+            
+          }
+        </div>
+
+      </div>
+    </div>
+    
+  </div>
+</div>
