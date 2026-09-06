@@ -8,7 +8,7 @@ import { Client } from '@stomp/stompjs';
   providedIn: 'root',
 })
 export class PollService {
-  private baseUrl = 'https://voting-application-backend-jvru.onrender.com/api/polls';
+  private baseUrl = 'https://voting-application-backend-o0j8.onrender.com/api/polls';
   
   // WebSocket setup
   private stompClient: Client | undefined;
@@ -21,7 +21,7 @@ export class PollService {
   // Establishes the real-time STOMP connection to Spring Boot
   private connectToWebSocket() {
     this.stompClient = new Client({
-      brokerURL: 'wss://voting-application-backend-jvru.onrender.com/ws', // The live Spring Boot endpoint
+      brokerURL: 'wss://voting-application-backend-o0j8.onrender.com/ws', // The live Spring Boot endpoint
       onConnect: () => {
         console.log('Connected to Real-Time Feed');
         
